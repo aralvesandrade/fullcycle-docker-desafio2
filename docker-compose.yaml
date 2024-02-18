@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  db:
+    image: mysql:5.7
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: "desafio2-docker-db"
+      MYSQL_ROOT_PASSWORD: "root123"
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - nodenet
+
+  node:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    container_name: node
+    environment:
+      DB_HOST: "db"
+      DB_USER: "root"
+      DB_PASS: "root123"
+      DB_DATABASE: "desafio2-docker-db"
+    networks:
+      - nodenet
+    depends_on:
+      - db
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    networks:
+      - nodenet
+    ports:
+      - "8080:80"
+
+networks:
+  nodenet:
+    driver: bridge
