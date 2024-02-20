@@ -23,7 +23,7 @@ function insertName(fullName) {
     db.query(sql, fullName, (err, result) => {
       db.end();
       if (err) reject(err);
-      console.log(`People Id: ${result.insertId}`);
+      console.log(`Person '${fullName}' inserted! Id: ${result.insertId}`);
       resolve(result);
     });
   });

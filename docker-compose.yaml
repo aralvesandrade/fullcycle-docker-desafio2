@@ -11,23 +11,36 @@ services:
     volumes:
       - ./mysql:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 0s
     networks:
       - nodenet
 
-  node:
+  app:
     build:
       context: ./node
       dockerfile: Dockerfile
-    container_name: node
+    container_name: app
     environment:
       DB_HOST: "db"
       DB_USER: "root"
       DB_PASS: "root123"
       DB_DATABASE: "desafio2-docker-db"
+    volumes:
+      - ./node:/app
     networks:
       - nodenet
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   nginx:
     build:
@@ -38,6 +51,8 @@ services:
       - nodenet
     ports:
       - "8080:80"
+    depends_on:
+      - app
 
 networks:
   nodenet:
