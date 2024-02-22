@@ -3,7 +3,8 @@ version: "3"
 services:
   db:
     image: mysql:5.7
-    container_name: mysql
+    container_name: db
+    command: --innodb-use-native-aio=0
     restart: always
     environment:
       MYSQL_DATABASE: "desafio2-docker-db"
@@ -15,7 +16,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD",
+          "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}",
         ]
       interval: 5s
       timeout: 10s
@@ -29,6 +30,7 @@ services:
       context: ./node
       dockerfile: Dockerfile
     container_name: app
+    entrypoint: sh -c "npm install && node index.js"
     environment:
       DB_HOST: "db"
       DB_USER: "root"
@@ -47,6 +49,9 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
     container_name: nginx
+    command: /bin/sh -c "exec nginx -g 'daemon off;'"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
     networks:
       - nodenet
     ports:
