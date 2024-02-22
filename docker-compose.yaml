@@ -1,17 +1,42 @@
 version: "3"
 
 services:
+  app:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    container_name: app
+    entrypoint: sh -c "npm install && node index.js"
+    tty: true
+    environment:
+      DB_HOST: "db"
+      DB_USER: "root"
+      DB_PASS: "root123"
+      DB_DATABASE: "desafio2-docker-db"
+    networks:
+      - node-network
+    volumes:
+      - ./node:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
   db:
     image: mysql:5.7
     container_name: db
     command: --innodb-use-native-aio=0
     restart: always
+    tty: true
     environment:
-      MYSQL_DATABASE: "desafio2-docker-db"
-      MYSQL_ROOT_PASSWORD: "root123"
+      - MYSQL_DATABASE=desafio2-docker-db
+      - MYSQL_ROOT_PASSWORD=root123
+    networks:
+      - node-network
     volumes:
-      - ./mysql:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./mysql/database:/var/lib/mysql
     healthcheck:
       test:
         [
@@ -22,27 +47,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 0s
-    networks:
-      - nodenet
-
-  app:
-    build:
-      context: ./node
-      dockerfile: Dockerfile
-    container_name: app
-    entrypoint: sh -c "npm install && node index.js"
-    environment:
-      DB_HOST: "db"
-      DB_USER: "root"
-      DB_PASS: "root123"
-      DB_DATABASE: "desafio2-docker-db"
-    volumes:
-      - ./node:/app
-    networks:
-      - nodenet
-    depends_on:
-      db:
-        condition: service_healthy
 
   nginx:
     build:
@@ -50,15 +54,15 @@ services:
       dockerfile: Dockerfile
     container_name: nginx
     command: /bin/sh -c "exec nginx -g 'daemon off;'"
-    volumes:
-      - ./nginx:/etc/nginx/conf.d
-    networks:
-      - nodenet
     ports:
       - "8080:80"
+    networks:
+      - node-network
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
     depends_on:
       - app
 
 networks:
-  nodenet:
+  node-network:
     driver: bridge
